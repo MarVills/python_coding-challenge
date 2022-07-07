@@ -2,22 +2,17 @@
 
 import math
 import datetime
-import random
 
 error_message = "Please select from the choices only!"
 entrances = ["Entance 1", "Entrance 2", "Entrance 3"]
 type = ["Small", "Medium", "Large"]
-vehicle_type = ["S","M","L"]
-parking_type = ["SP", "MP", "LP"]
+parking_slot_type = [0,1,2]
 parked_vehicles = []
+unparked_vehicles = []
+occupied_slots = []
 slot_distances = [(1, 4, 5), (3, 2, 3), (2, 4, 3), (5, 3, 4), (1, 5, 4), (4, 1, 3), (4, 5, 4), (2, 2, 1), (2, 3, 2)]
 parking_slots = [0, 2, 1, 1, 0, 0, 2, 2, 1]
-occupied_slots = []
 
-# available slots for vehicle type 
-# small = 9
-# medium = 6
-# large = 3
 
 def message(messType, message):
   mess_bar = "**********"
@@ -53,8 +48,7 @@ def parkingDetails():
   while True: # Getting Plate number 
       plate_number = str(input("\nEnter Plate Number: ")).strip()
       if(plate_number != "" or plate_number != " "): break
-      else: continue
-        
+      else: continue  
   return entrance - 1, vehicle_type - 1, plate_number
 
 def getAssignedSlot(entrance, vehicle_type): # Assigning parking slot 
@@ -85,26 +79,36 @@ def parkVehicle(detail): # Parking vehicle
     isContinue() 
   parking_details.append(current_time)
   parking_details.append(set_slot)
-  message("message", "Parking Vehicle")
+  parking_details.append(parking_slot_type[detail[0]])
   occupied_slots.append(parking_details[3])
+  message("message", "Parking Vehicle")
   parked_vehicles.append(parking_details)
   print("\n", "Vehicle Type: ", type[parking_details[0]],"\n", "Plate Number: ", parking_details[1] ,"\n", "Parking Time: ", parking_details[2] ,"\n", "Parking Slot: ", parking_details[3])
 # ----------------------------------------------------------
-def calculatePayment(parking_time):
-  parking_fee = 0
+def getParkingTime(parking_time):
   unpark_time = datetime.datetime.now()
   total_time = unpark_time - parking_time
-  print(total_time.total_seconds())
-  # park_time = round(math.ceil(total_time.total_seconds()) / 3600)
-  print(parking_time)
-  print(unpark_time)
-  print(total_time)
-  return parking_fee
+  park_hours = round(total_time.total_seconds() / 3600)
+  return park_hours
+
+def calculatePayment(time, slot):
+  parking_time = getParkingTime(time)
+  parking_fee = 0
+  days = math.floor(parking_time / 24)
+  excess_time = parking_time % 24
+  if(days != 0): 
+    parking_fee = days * 5000
+  if(excess_time > 3): 
+    if(slot == 0): return parking_fee + ((parking_time * 20) + 40)
+    elif(slot == 1): return parking_fee + ((parking_time * 60) + 40)
+    else: return parking_fee + ((parking_time * 100) + 40)
+  elif(parking_time <=3 ): return 40
 
 def unparkVehicle(slot): # Unparking vehicle
   for s in parked_vehicles:
     if(slot == s[3]):
-      parking_fee = calculatePayment(s[2])
+      parking_fee = calculatePayment(s[2], s[4])
+      print("\n Your parking fee is: ", parking_fee, " pesos")
       message("message", "Unparking Vehicle")
       parked_vehicles.remove(s)
       occupied_slots.remove(slot)
