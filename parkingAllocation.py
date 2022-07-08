@@ -13,15 +13,13 @@ occupied_slots = []
 slot_distances = [(1, 4, 5), (3, 2, 3), (2, 4, 3), (5, 3, 4), (1, 5, 4), (4, 1, 3), (4, 5, 4), (2, 2, 1), (2, 3, 2)]
 parking_slots = [0, 2, 1, 1, 0, 0, 2, 2, 1]
 
-
 def message(messType, message):
   mess_bar = "**********"
   err_bar = "=========="
   if (messType == "error"): print("\n\n" + err_bar + " " + message + " " + err_bar)
-  # elif(messType == "customError"): print("\n\n" + err_bar + " " + message + " " + err_bar)
   else: print("\n\n" + mess_bar + " " + message + " " + mess_bar)
 
-def parkingDetails(): 
+def parkingDetails(): # Get parking vehicle details/informations 
   entrance = 0
   vehicle_type = 0
   plate_number = ""
@@ -50,6 +48,18 @@ def parkingDetails():
       if(plate_number != "" or plate_number != " "): break
       else: continue  
   return entrance - 1, vehicle_type - 1, plate_number
+
+def isParkAgain(parking_details):
+  isParkAgain = False
+  for detail in unparked_vehicles:
+    if(parking_details[1] == detail[1]):
+      unpark_detail = list(unparked_vehicles.pop(unparked_vehicles.index(detail)))
+      is_one_hour =  getParkingTime(unpark_detail.pop(), datetime.datetime.now())[0]
+      if(is_one_hour != 0):
+        parked_vehicles.append(unpark_detail)
+        isParkAgain = True
+        break
+  return isParkAgain
 
 def getAssignedSlot(entrance, vehicle_type): # Assigning parking slot 
   available_slots = []
@@ -82,17 +92,17 @@ def parkVehicle(detail): # Parking vehicle
   parking_details.append(parking_slot_type[detail[0]])
   occupied_slots.append(parking_details[3])
   message("message", "Parking Vehicle")
-  parked_vehicles.append(parking_details)
+  if not isParkAgain(parking_details):
+    parked_vehicles.append(parking_details)
   print("\n", "Vehicle Type: ", type[parking_details[0]],"\n", "Plate Number: ", parking_details[1] ,"\n", "Parking Time: ", parking_details[2] ,"\n", "Parking Slot: ", parking_details[3])
-# ----------------------------------------------------------
-def getParkingTime(parking_time):
-  unpark_time = datetime.datetime.now()
+
+def getParkingTime(parking_time, unpark_time): # Parking time calculation
   total_time = unpark_time - parking_time
   park_hours = round(total_time.total_seconds() / 3600)
-  return park_hours
+  return park_hours, unpark_time
 
-def calculatePayment(time, slot):
-  parking_time = getParkingTime(time)
+def calculatePayment(time, unpark_time, slot): # Payment calculation
+  parking_time = getParkingTime(time, unpark_time)[0]
   parking_fee = 0
   days = math.floor(parking_time / 24)
   excess_time = parking_time % 24
@@ -105,17 +115,23 @@ def calculatePayment(time, slot):
   elif(parking_time <=3 ): return 40
 
 def unparkVehicle(slot): # Unparking vehicle
+  unpark_time = datetime.datetime.now()
   for s in parked_vehicles:
     if(slot == s[3]):
-      parking_fee = calculatePayment(s[2], s[4])
+      parking_fee = calculatePayment(s[2], unpark_time, s[4])
       print("\n Your parking fee is: ", parking_fee, " pesos")
       message("message", "Unparking Vehicle")
-      parked_vehicles.remove(s)
+      unpark_details = list(parked_vehicles.pop(parked_vehicles.index(s)))
+      unpark_details.append(getParkingTime(s[2], unpark_time)[1])
+      unpark_details.append(parking_fee)
+      unpark_details.append(unpark_time)
+      unparked_vehicles.append(unpark_details)
+      print(unparked_vehicles)
       occupied_slots.remove(slot)
+      print("Vehicle unparked.")
   isContinue()
-# ----------------------------------------------------------
+
 def pakingStatus(): # Parking status/information
-  print("")
   if(parked_vehicles == []):
     print("All parking slots are available!\n")
     isContinue()
@@ -148,7 +164,7 @@ def menu():
               print("No vehicle in the parking complex!")
               break
           try:
-            parking_slot = int(input("Enter occupied slot: "))
+            parking_slot = int(input("Enter occupied parking slot: "))
             if(parking_slot in occupied_slots):
               unparkVehicle(parking_slot)
               break
